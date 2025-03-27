@@ -1,0 +1,43 @@
+[package]
+name = "cart_server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+async-trait = "0.1"
+axum = { version = "0.8", features = ["macros"] }
+backon = "1.4"
+camino = "1.1"
+clap = { version = "4.5", features = ["derive"] }
+config = "0.15"
+disintegrate = { version = "2", features = ["macros", "serde-json"] }
+disintegrate-postgres = { version = "2", features = ["listener"] }
+fake = { version = "4.2", features = ["rust_decimal", "derive", "uuid"] }
+futures = "0.3"
+jiff = { version = "0.2", features = ["serde"] }
+jiff-sqlx = { version = "0.1", features = ["postgres"] }
+rdkafka = { version = "0.37" }
+rust_decimal = "1.37"
+serde = { version = "1", features = ["derive"] }
+serde-aux = "4.5"
+serde_json = "1.0"
+sqlx = { version = "0.8", features = [
+  "postgres",
+  "runtime-tokio-rustls",
+  "rust_decimal",
+  "uuid",
+] }
+strum_macros = "0.27"
+thiserror = "2.0"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "full", "sync"] }
+tokio-graceful-shutdown = "0.16"
+tower-http = { version = "0.6", features = ["trace"] }
+tracing = { version = "0.1", features = ["attributes"] }
+tracing-appender = "0.2"
+tracing-subscriber = "0.3"
+uuid = { version = "1.11", features = ["v4", "v7", "serde"] }
+
+
+[dev-dependencies]
+serial_test = "3.2"

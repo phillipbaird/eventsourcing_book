@@ -1,0 +1,14 @@
+# Default configuration for our application.
+application:
+  port: 3000
+  logs_directory: log_files
+database:
+  host: "localhost"
+  port: 5432
+  username: "postgres"
+  password: "password"
+  database_name: "cart"
+kafka:
+  bootstrap_servers: "localhost:9092"
+  group_id: "cart"
+  session_timeout_ms: 6000

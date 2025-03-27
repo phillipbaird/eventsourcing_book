@@ -1,0 +1,6 @@
+# Config in this file is layered on top of config in base.yaml.
+environment: "production"
+application:
+  host: "0.0.0.0"
+database:
+  require_ssl: true
