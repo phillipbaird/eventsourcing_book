@@ -1,6 +1,6 @@
 use cart_server::{
     domain::{
-        cart::{PriceChangeTranslator, PriceChangedMessage, ProductId}, create_eventstore_and_decider, Price, PricingStream
+        cart::{PriceChangeTranslator, PriceChangedMessage, ProductId}, create_eventstore_and_decider, fake::Price, PricingStream
     }, subsystems::KafkaMessageHandler
 };
 use disintegrate::{query, EventStore};

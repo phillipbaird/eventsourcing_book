@@ -4,12 +4,11 @@ use anyhow::Context;
 use axum::Json;
 use axum::extract::{Path, State};
 use disintegrate::{Decision, StateMutate, StateQuery};
-use fake::Dummy;
 use rust_decimal::Decimal;
 use std::path::PathBuf;
 use uuid::Uuid;
 
-use crate::domain::helpers::{fake::{Price, FingerPrint}, device_fingerprint_calculator::calculate_device_fingerprint};
+use crate::domain::helpers::device_fingerprint_calculator::calculate_device_fingerprint;
 use crate::domain::{CartStream, DecisionMaker, DomainEvent};
 use crate::infra::ClientError;
 
@@ -54,16 +53,14 @@ pub async fn add_item_endpoint(
 
 //------------------------- Command ----------------------------
 
-#[derive(Debug, Clone, Dummy)]
+#[derive(Debug, Clone)]
 pub struct AddItemCommand {
     pub cart_id: CartId,
     pub description: String,
     pub image: PathBuf,
-    #[dummy(faker = "Price")]
     pub price: Decimal,
     pub item_id: ItemId,
     pub product_id: ProductId,
-    #[dummy(faker = "FingerPrint")]
     pub fingerprint: String,
 }
 
@@ -171,6 +168,9 @@ impl StateMutate for AddItemState {
 
 #[cfg(test)]
 mod tests {
+
+    use crate::domain::fake::{FingerPrint, Price};
+
     use super::*;
     use disintegrate::TestHarness;
     use fake::{Fake, Faker};

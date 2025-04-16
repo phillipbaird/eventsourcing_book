@@ -3,7 +3,7 @@ use cart_server::domain::{
         carts_with_products::find_by_product_id, AddItemCommand, CartId, ChangePriceCommand,
         ProductId,
     },
-    create_eventstore_and_decider, Price,
+    create_eventstore_and_decider, fake::Price,
 };
 use fake::{Fake, Faker};
 use serial_test::serial;
@@ -20,7 +20,7 @@ async fn it_correctly_archives_items_from_carts(
 ) {
     let (server_handle, server_pool, pool, _) = start_test_server(pool_options, connect_options).await;
 
-    let (_event_store, decider) = create_eventstore_and_decider(&pool)
+    let (_, decider) = create_eventstore_and_decider(&pool)
         .await
         .expect("Decider should be created.");
 

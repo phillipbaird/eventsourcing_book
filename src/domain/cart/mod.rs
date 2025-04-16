@@ -13,11 +13,12 @@ mod publish_cart;
 mod remove_item;
 mod submit_cart;
 
-pub use add_item::{add_item_endpoint, AddItemCommand};
+pub use add_item::{add_item_endpoint, AddItemCommand, AddItemPayload};
 pub use archive_item::archive_product_processor;
 pub use cart_items::{cart_items_endpoint, cart_items_read_model, CartItem, CartItemsReadModel};
 pub use cart_items_from_db::{
-    cart_items_from_db_endpoint, cart_items_from_db_read_model_reset, CartItemsReadModelProjection,
+    cart_items_from_db_endpoint, cart_items_from_db_read_model,
+    cart_items_from_db_read_model_reset, CartItemsReadModelProjection,
 };
 pub use change_inventory::{
     ChangeInventoryCommand, InventoryChangedMessage, InventoryChangedTranslator,

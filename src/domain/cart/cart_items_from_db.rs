@@ -74,6 +74,11 @@ pub async fn cart_items_from_db_read_model(
 pub async fn cart_items_from_db_read_model_reset(pool: &PgPool) -> Result<(), anyhow::Error> {
     let mut tx = pool.begin().await?;
 
+    sqlx::query!("DELETE FROM cart;")
+        .execute(&mut *tx)
+        .await
+        .context("Problem in cart_items_from_db_read_model_reset.")?;
+
     sqlx::query!("DELETE FROM cart_items;")
         .execute(&mut *tx)
         .await

@@ -4,7 +4,7 @@ mod helpers;
 
 pub use events::{CartStream, DomainEvent, EmptyStream, InventoryStream, PricingStream};
 pub use helpers::{
-    fake::*,
+    fake,
     device_fingerprint_calculator::default_fingerprint,
     PublishError,
     live_read_models::{EventReadingError, read_from_events},
