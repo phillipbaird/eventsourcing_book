@@ -3,15 +3,15 @@
 use std::path::PathBuf;
 
 use axum::{
-    extract::{Path, State},
     Json,
+    extract::{Path, State},
 };
 use disintegrate::query;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
 use crate::{
-    domain::{read_from_events, CartStream, EventReadingError, EventStore},
+    domain::{CartStream, EventReadingError, EventStore, read_from_events},
     infra::ClientError,
 };
 
@@ -65,27 +65,27 @@ pub async fn cart_items_read_model(
     cart_id: &CartId,
 ) -> Result<Option<CartItemsReadModel>, EventReadingError<i64, disintegrate_postgres::Error>> {
     let query = query!(CartStream; cart_id == *cart_id);
-    read_from_events(
-        &event_store,
-        &query,
-        None,
-        apply_event,
-    )
-    .await
+    read_from_events(&event_store, &query, None, apply_event).await
 }
 
-fn apply_event(read_model: Option<CartItemsReadModel>, event: CartStream) -> Option<CartItemsReadModel> {
+fn apply_event(
+    read_model: Option<CartItemsReadModel>,
+    event: CartStream,
+) -> Option<CartItemsReadModel> {
     match (read_model, event) {
         (None, CartStream::CartCreated { cart_id }) => Some(CartItemsReadModel::new(cart_id)),
-        (Some(mut read_model), CartStream::CartItemAdded {
-            cart_id,
-            description,
-            image,
-            price,
-            item_id,
-            product_id,
-            fingerprint,
-        }) => {
+        (
+            Some(mut read_model),
+            CartStream::CartItemAdded {
+                cart_id,
+                description,
+                image,
+                price,
+                item_id,
+                product_id,
+                fingerprint,
+            },
+        ) => {
             read_model.total_price += price;
             read_model.data.push(CartItem {
                 cart_id,
@@ -112,9 +112,12 @@ fn apply_event(read_model: Option<CartItemsReadModel>, event: CartStream) -> Opt
             read_model.data.clear();
             Some(read_model)
         }
-        (Some(mut read_model), CartStream::ItemArchivedEvent {
-            cart_id, item_id, ..
-        }) => {
+        (
+            Some(mut read_model),
+            CartStream::ItemArchivedEvent {
+                cart_id, item_id, ..
+            },
+        ) => {
             if let Some(item) = read_model.data.iter().find(|item| item.item_id == item_id) {
                 read_model.total_price -= item.price;
             }
@@ -123,11 +126,13 @@ fn apply_event(read_model: Option<CartItemsReadModel>, event: CartStream) -> Opt
                 .retain(|item| item.cart_id == cart_id && item.item_id != item_id);
             Some(read_model)
         }
-        (Some(read_model), CartStream::CartSubmitted { .. }) => {
-            Some(read_model)
+        (Some(read_model), CartStream::CartSubmitted { .. }) => Some(read_model),
+        (None, _) => {
+            panic!("The first event for the cart was not CartAdded! This should not happen.")
         }
-        (None, _) => panic!("The first event for the cart was not CartAdded! This should not happen."),
-        (Some(_), CartStream::CartCreated { .. }) => panic!("A secondary event for the cart was CartCreated! This should not happen."),
+        (Some(_), CartStream::CartCreated { .. }) => {
+            panic!("A secondary event for the cart was CartCreated! This should not happen.")
+        }
     }
 }
 
@@ -137,7 +142,8 @@ fn apply_event(read_model: Option<CartItemsReadModel>, event: CartStream) -> Opt
 mod tests {
     use crate::domain::{
         cart::{AddItemCommand, RemoveItemCommand},
-        create_eventstore_and_decider, helpers::fake::{FingerPrint, Price},
+        create_eventstore_and_decider,
+        helpers::fake::{FingerPrint, Price},
     };
 
     use super::*;

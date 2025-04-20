@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use anyhow::Context;
 use axum::extract::FromRef;
-use domain::{create_eventstore_and_decider, DecisionMaker, EventStore};
+use domain::{DecisionMaker, EventStore, create_eventstore_and_decider};
 use infra::{DatabaseSettings, Settings};
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use subsystems::{
@@ -53,9 +53,7 @@ pub async fn start_server(state: AppState) -> anyhow::Result<()> {
     .handle_shutdown_requests(Duration::from_millis(2000))
     .await
     .map_err(Into::into)
-   
 }
-
 
 pub fn configure_tracing(settings: &Settings) -> WorkerGuard {
     let file_appender = tracing_appender::rolling::daily(
@@ -69,7 +67,6 @@ pub fn configure_tracing(settings: &Settings) -> WorkerGuard {
         .init();
     _guard
 }
-
 
 pub async fn construct_app_state(settings: Settings) -> Result<AppState, anyhow::Error> {
     let pool = construct_db_pool(&settings.database).await?;
@@ -92,5 +89,3 @@ pub async fn construct_db_pool(settings: &DatabaseSettings) -> Result<PgPool, an
         .await
         .context("Failed to connect to Postgres database.\n1. Check database is running.\n2. Check Postgres database settings in configuration file(s).")
 }
-
-

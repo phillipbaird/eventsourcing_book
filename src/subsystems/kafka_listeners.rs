@@ -1,10 +1,10 @@
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use async_trait::async_trait;
 use backon::{ExponentialBuilder, Retryable};
 use futures::FutureExt;
 use rdkafka::{
-    consumer::{CommitMode, Consumer, StreamConsumer},
     ClientConfig, Message,
+    consumer::{CommitMode, Consumer, StreamConsumer},
 };
 use sqlx::PgPool;
 use tokio::select;
@@ -111,9 +111,12 @@ where
         let maybe_last_offset = last_kafka_offset_processed(&self.pool, H::TOPIC)
             .await
             .with_context(|| {
-                format!("Failed retrieve last event processed for Kafka topic {}", H::TOPIC)
+                format!(
+                    "Failed retrieve last event processed for Kafka topic {}",
+                    H::TOPIC
+                )
             })?;
-        
+
         loop {
             let message = consumer.recv().await.map_err(|e| anyhow!(e))?;
             let offset = message.offset();
@@ -121,7 +124,10 @@ where
             // Bypass any messages we think we've processed before.
             if let Some(last_offset) = maybe_last_offset {
                 if last_offset >= offset {
-                    warn!("Bypassing message {offset} for topic {}. Last message processed {last_offset}.", H::TOPIC);
+                    warn!(
+                        "Bypassing message {offset} for topic {}. Last message processed {last_offset}.",
+                        H::TOPIC
+                    );
                     consumer
                         .commit_message(&message, CommitMode::Async)
                         .map_err(anyhow::Error::new)?;

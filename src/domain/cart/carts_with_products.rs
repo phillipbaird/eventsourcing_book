@@ -2,13 +2,13 @@
 
 use anyhow::Context;
 use async_trait::async_trait;
-use disintegrate::{query, EventListener, PersistedEvent, StreamQuery};
+use disintegrate::{EventListener, PersistedEvent, StreamQuery, query};
 use sqlx::PgPool;
 use tracing::error;
 
 use crate::domain::{CartStream, DecisionMaker, DomainEvent, PricingStream};
 
-use super::{archive_item::archive_product_processor, CartId, ItemId, ProductId};
+use super::{CartId, ItemId, ProductId, archive_item::archive_product_processor};
 
 //----------------------- Read Model API ------------------------
 
@@ -166,15 +166,17 @@ async fn save(
     Ok(())
 }
 
-
 //-------------------------- Tests -------------------------------
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::{cart::{AddItemCommand, RemoveItemCommand}, create_eventstore_and_decider};
+    use crate::domain::{
+        cart::{AddItemCommand, RemoveItemCommand},
+        create_eventstore_and_decider,
+    };
 
     use super::*;
-    use fake::{Faker, Fake};
+    use fake::{Fake, Faker};
 
     #[sqlx::test]
     async fn carts_with_products_read_model_test(pool: PgPool) {

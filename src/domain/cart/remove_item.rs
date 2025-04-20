@@ -143,7 +143,9 @@ impl StateMutate for RemoveItemState {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::{cart::ProductId, helpers::device_fingerprint_calculator::default_fingerprint};
+    use crate::domain::{
+        cart::ProductId, helpers::device_fingerprint_calculator::default_fingerprint,
+    };
 
     use super::*;
     use disintegrate::TestHarness;

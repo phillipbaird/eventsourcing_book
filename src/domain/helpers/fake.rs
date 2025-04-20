@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
 use fake::{
+    Dummy, Fake,
     faker::filesystem::raw::FilePath,
     locales::EN,
     rand::seq::IteratorRandom,
     uuid::{UUIDv4, UUIDv7},
-    Dummy, Fake,
 };
 use rust_decimal::Decimal;
 use uuid::Uuid;

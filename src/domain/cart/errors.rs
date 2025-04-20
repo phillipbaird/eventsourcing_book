@@ -1,4 +1,4 @@
-use super::{CartId, UuidNotCompatible};
+use super::CartId;
 
 #[derive(Debug, PartialEq, thiserror::Error)]
 pub enum CartError {
@@ -10,12 +10,6 @@ pub enum CartError {
     CannotAddItemCartFull,
     #[error("Cannot remove item. Item not in cart.")]
     CannotRemoveItem,
-    #[error("Cannot translate external event {offset} from topic {topic}.")]
-    CannotTranslateExternalEvent {
-        topic: String,
-        offset: i64,
-        source: UuidNotCompatible,
-    },
     #[error("Cannot submit an empty cart.")]
     CannotSubmitEmptyCart,
     #[error("Cannot submit cart twice.")]

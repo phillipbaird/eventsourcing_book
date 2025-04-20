@@ -8,9 +8,12 @@ use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 use tracing::info;
 
 use crate::{
+    AppState,
     domain::cart::{
-        carts_with_products::CartsWithProductsReadModelProjection, inventories::InventoriesReadModelProjection, CartItemsReadModelProjection, CartSubmittedEventHandler
-    }, AppState
+        CartItemsReadModelProjection, CartSubmittedEventHandler,
+        carts_with_products::CartsWithProductsReadModelProjection,
+        inventories::InventoriesReadModelProjection,
+    },
 };
 
 pub struct EventListeners {
@@ -28,9 +31,7 @@ impl IntoSubsystem<anyhow::Error> for EventListeners {
     async fn run(self, subsys: SubsystemHandle) -> Result<(), anyhow::Error> {
         let event_listeners = PgEventListener::builder(self.state.event_store)
             .register_listener(
-                CartItemsReadModelProjection::new(
-                    self.state.pool.clone(),
-                ),
+                CartItemsReadModelProjection::new(self.state.pool.clone()),
                 PgEventListenerConfig::poller(Duration::from_secs(5)).with_notifier(),
             )
             .register_listener(

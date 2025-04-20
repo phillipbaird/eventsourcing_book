@@ -3,10 +3,10 @@
 use anyhow::Context;
 use async_trait::async_trait;
 use axum::{
-    extract::{Path, State},
     Json,
+    extract::{Path, State},
 };
-use disintegrate::{query, EventListener, PersistedEvent, StreamQuery};
+use disintegrate::{EventListener, PersistedEvent, StreamQuery, query};
 use rust_decimal::Decimal;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -35,10 +35,15 @@ pub async fn cart_items_from_db_read_model(
     pool: &PgPool,
     cart_id: &CartId,
 ) -> Result<Option<CartItemsReadModel>, anyhow::Error> {
-    let maybe_uuid = sqlx::query_scalar!(r#"select cart_id from cart where cart_id = $1"#, cart_id as &CartId)
-        .fetch_optional(pool)
-        .await
-        .with_context(|| format!("Problem in cart_items_from_db_read_model({cart_id}) reading cart table."))?;
+    let maybe_uuid = sqlx::query_scalar!(
+        r#"select cart_id from cart where cart_id = $1"#,
+        cart_id as &CartId
+    )
+    .fetch_optional(pool)
+    .await
+    .with_context(|| {
+        format!("Problem in cart_items_from_db_read_model({cart_id}) reading cart table.")
+    })?;
     if maybe_uuid.is_none() {
         return Ok(None);
     }
@@ -70,7 +75,6 @@ pub async fn cart_items_from_db_read_model(
     }))
 }
 
-
 pub async fn cart_items_from_db_read_model_reset(pool: &PgPool) -> Result<(), anyhow::Error> {
     let mut tx = pool.begin().await?;
 
@@ -90,7 +94,8 @@ pub async fn cart_items_from_db_read_model_reset(pool: &PgPool) -> Result<(), an
         .await
         .context("Problem in cart_items_from_db_read_model_reset.")?;
 
-   tx.commit().await
+    tx.commit()
+        .await
         .context("Problem in cart_items_from_db_read_model_reset.")
 }
 
@@ -129,13 +134,39 @@ impl EventListener<i64, CartStream> for CartItemsReadModelProjection {
         let last_event_id = event.id();
         let event = event.into_inner();
         match event {
-            CartStream::CartCleared { cart_id } => delete_by_cart_id(&self.pool, &cart_id, last_event_id).await,
+            CartStream::CartCleared { cart_id } => {
+                delete_by_cart_id(&self.pool, &cart_id, last_event_id).await
+            }
             CartStream::CartCreated { cart_id } => add_cart(&self.pool, &cart_id).await,
-            CartStream::CartItemAdded { cart_id, description, image, price, item_id, product_id, fingerprint } =>
-                save(&self.pool, &cart_id, &description, image.to_string_lossy().as_ref(), price, &item_id, &product_id, &fingerprint, last_event_id).await,
-            CartStream::CartItemRemoved { cart_id, item_id } => delete_by_item_id(&self.pool, &cart_id, &item_id, last_event_id).await,
+            CartStream::CartItemAdded {
+                cart_id,
+                description,
+                image,
+                price,
+                item_id,
+                product_id,
+                fingerprint,
+            } => {
+                save(
+                    &self.pool,
+                    &cart_id,
+                    &description,
+                    image.to_string_lossy().as_ref(),
+                    price,
+                    &item_id,
+                    &product_id,
+                    &fingerprint,
+                    last_event_id,
+                )
+                .await
+            }
+            CartStream::CartItemRemoved { cart_id, item_id } => {
+                delete_by_item_id(&self.pool, &cart_id, &item_id, last_event_id).await
+            }
             CartStream::CartSubmitted { .. } => Ok(()),
-            CartStream::ItemArchivedEvent { cart_id, item_id, .. } => delete_by_item_id(&self.pool, &cart_id, &item_id, last_event_id).await,
+            CartStream::ItemArchivedEvent {
+                cart_id, item_id, ..
+            } => delete_by_item_id(&self.pool, &cart_id, &item_id, last_event_id).await,
         }
     }
 }
@@ -227,27 +258,22 @@ async fn save(
     Ok(())
 }
 
-
-
 //-------------------------- Tests -------------------------------
 
 #[cfg(test)]
 mod tests {
     use crate::domain::{
+        DomainEvent,
         cart::{AddItemCommand, RemoveItemCommand},
-        create_eventstore_and_decider, DomainEvent,
+        create_eventstore_and_decider,
+        fake::Price,
     };
 
     use super::*;
 
     use fake::{Fake, Faker};
-    use rust_decimal::Decimal;
     use sqlx::PgPool;
 
-    fn fake_price() -> Decimal {
-        Decimal::new((1..1000).fake(), 2)
-    }
-    
     #[sqlx::test]
     async fn cart_items_read_model_test(pool: PgPool) {
         let (_, decider) = create_eventstore_and_decider(&pool)
@@ -258,16 +284,18 @@ mod tests {
 
         let mut persisted_events: Vec<PersistedEvent<i64, DomainEvent>> = Vec::new();
 
-        let price1 = fake_price();
+        let price1 = Price.fake();
         let add_item1_cmd = AddItemCommand {
             cart_id,
             price: price1,
             ..Faker.fake()
         };
-        persisted_events.extend(decider
-            .make(add_item1_cmd.clone())
-            .await
-            .expect("Add item 1 should succeed."));
+        persisted_events.extend(
+            decider
+                .make(add_item1_cmd.clone())
+                .await
+                .expect("Add item 1 should succeed."),
+        );
 
         let item_id_to_remove = ItemId::new();
         let add_item2_cmd = AddItemCommand {
@@ -275,30 +303,36 @@ mod tests {
             item_id: item_id_to_remove,
             ..Faker.fake()
         };
-        persisted_events.extend(decider
-            .make(add_item2_cmd)
-            .await
-            .expect("Add item 2 should succeed."));
+        persisted_events.extend(
+            decider
+                .make(add_item2_cmd)
+                .await
+                .expect("Add item 2 should succeed."),
+        );
 
-        let price3 = fake_price();
+        let price3 = Price.fake();
         let add_item3_cmd = AddItemCommand {
             cart_id,
             price: price3,
             ..Faker.fake()
         };
-        persisted_events.extend(decider
-            .make(add_item3_cmd.clone())
-            .await
-            .expect("Add item 3 should succeed."));
+        persisted_events.extend(
+            decider
+                .make(add_item3_cmd.clone())
+                .await
+                .expect("Add item 3 should succeed."),
+        );
 
         let remove_item2_cmd = RemoveItemCommand {
             cart_id,
             item_id: item_id_to_remove,
         };
-        persisted_events.extend(decider
-            .make(remove_item2_cmd)
-            .await
-            .expect("Removing item 2 should succeed."));
+        persisted_events.extend(
+            decider
+                .make(remove_item2_cmd)
+                .await
+                .expect("Removing item 2 should succeed."),
+        );
 
         let expected_read_model = Some(CartItemsReadModel {
             cart_id,
@@ -327,10 +361,17 @@ mod tests {
 
         let projection = CartItemsReadModelProjection::new(pool.clone());
         // Process the events through the projection.
-        let persisted_events: Vec<PersistedEvent<i64, CartStream>> = 
-            persisted_events.into_iter().map(|pe| PersistedEvent::new(
-                    pe.id(), pe.into_inner().try_into().expect("Expected type converion.")
-            )).collect();
+        let persisted_events: Vec<PersistedEvent<i64, CartStream>> = persisted_events
+            .into_iter()
+            .map(|pe| {
+                PersistedEvent::new(
+                    pe.id(),
+                    pe.into_inner()
+                        .try_into()
+                        .expect("Expected type converion."),
+                )
+            })
+            .collect();
         for event in persisted_events {
             projection
                 .handle(event)
@@ -346,5 +387,4 @@ mod tests {
 
         assert_eq!(read_model, expected_read_model);
     }
-
 }

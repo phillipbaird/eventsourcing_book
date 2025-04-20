@@ -1,9 +1,10 @@
 use cart_server::domain::{
     cart::{
-        carts_with_products::find_by_product_id, AddItemCommand, CartId, ChangePriceCommand,
-        ProductId,
+        AddItemCommand, CartId, ChangePriceCommand, ProductId,
+        carts_with_products::find_by_product_id,
     },
-    create_eventstore_and_decider, fake::Price,
+    create_eventstore_and_decider,
+    fake::Price,
 };
 use fake::{Fake, Faker};
 use serial_test::serial;
@@ -18,7 +19,8 @@ async fn it_correctly_archives_items_from_carts(
     pool_options: PgPoolOptions,
     connect_options: PgConnectOptions,
 ) {
-    let (server_handle, server_pool, pool, _) = start_test_server(pool_options, connect_options).await;
+    let (server_handle, server_pool, pool, _) =
+        start_test_server(pool_options, connect_options).await;
 
     let (_, decider) = create_eventstore_and_decider(&pool)
         .await

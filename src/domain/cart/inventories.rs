@@ -1,7 +1,7 @@
 //! Inventories read model.
 
 use async_trait::async_trait;
-use disintegrate::{query, EventListener, PersistedEvent, StreamQuery};
+use disintegrate::{EventListener, PersistedEvent, StreamQuery, query};
 use sqlx::PgPool;
 use tracing::error;
 
@@ -89,7 +89,6 @@ impl EventListener<i64, InventoryStream> for InventoriesReadModelProjection {
     }
 }
 
-
 //-------------------------- Tests -------------------------------
 
 #[cfg(test)]
@@ -145,10 +144,7 @@ mod tests {
             product_id,
             inventory: expected_inventory,
         };
-        let found_inventory = find_by_id(&pool, &product_id)
-            .await
-            .unwrap()
-            .unwrap();
+        let found_inventory = find_by_id(&pool, &product_id).await.unwrap().unwrap();
 
         pool.close().await;
 

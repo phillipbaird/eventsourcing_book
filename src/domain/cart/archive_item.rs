@@ -90,7 +90,6 @@ impl StateMutate for ArchiveItemState {
     }
 }
 
-
 //--------------------------- Processor -----------------------------
 
 pub async fn archive_product_processor(

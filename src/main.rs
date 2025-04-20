@@ -1,5 +1,10 @@
 use anyhow::Context;
-use cart_server::{configure_tracing, construct_app_state, domain::cart::cart_items_from_db_read_model_reset, infra::{get_config_settings, Cli}, start_server};
+use cart_server::{
+    configure_tracing, construct_app_state,
+    domain::cart::cart_items_from_db_read_model_reset,
+    infra::{Cli, get_config_settings},
+    start_server,
+};
 use clap::Parser;
 
 #[tokio::main]
@@ -14,7 +19,7 @@ async fn main() -> anyhow::Result<()> {
     let _worker_guard = configure_tracing(&settings);
 
     let app_state = construct_app_state(settings).await?;
-   
+
     if cli.reset_cart_items {
         cart_items_from_db_read_model_reset(&app_state.pool).await?;
     }

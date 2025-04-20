@@ -1,7 +1,11 @@
 use std::net::SocketAddr;
 
 use async_trait::async_trait;
-use axum::{extract::State, routing::{get, post}, Json};
+use axum::{
+    Json,
+    extract::State,
+    routing::{get, post},
+};
 use futures::FutureExt;
 use tokio::select;
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
@@ -28,9 +32,18 @@ impl IntoSubsystem<anyhow::Error> for WebServer {
             .inspect_err(|e| error!("Could not parse server address {address}.\nCheck application host and port in configuration settings.\nFailed with {e}"))?;
 
         let router = axum::Router::new()
-            .route("/additem/{cart_id}", post(crate::domain::cart::add_item_endpoint))
-            .route("/{cart_id}/cartitems", get(crate::domain::cart::cart_items_endpoint))
-            .route("/{cart_id}/cartitemsfromdb", get(crate::domain::cart::cart_items_from_db_endpoint))
+            .route(
+                "/additem/{cart_id}",
+                post(crate::domain::cart::add_item_endpoint),
+            )
+            .route(
+                "/{cart_id}/cartitems",
+                get(crate::domain::cart::cart_items_endpoint),
+            )
+            .route(
+                "/{cart_id}/cartitemsfromdb",
+                get(crate::domain::cart::cart_items_from_db_endpoint),
+            )
             .route(
                 "/clearcart/{cart_id}",
                 post(crate::domain::cart::clear_cart_endpoint),
@@ -43,10 +56,7 @@ impl IntoSubsystem<anyhow::Error> for WebServer {
                 "/submitcart/{cart_id}",
                 post(crate::domain::cart::submit_cart_endpoint),
             )
-            .route(
-                "/healthcheck",
-                get(health_check_endpoint),
-            )
+            .route("/healthcheck", get(health_check_endpoint))
             .layer(TraceLayer::new_for_http())
             .with_state(self.state);
 
@@ -74,4 +84,3 @@ pub async fn health_check_endpoint(
 ) -> Result<Json<String>, ClientError> {
     Ok(Json("Ok".to_owned()))
 }
-

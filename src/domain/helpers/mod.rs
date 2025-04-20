@@ -7,5 +7,5 @@ pub mod live_read_models;
 mod macros;
 mod stateless;
 
-pub use kafka::{publish_with_events, PublishError};
+pub use kafka::{PublishError, publish_with_events};
 pub use stateless::Stateless;

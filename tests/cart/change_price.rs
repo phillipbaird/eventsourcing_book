@@ -1,9 +1,13 @@
 use cart_server::{
     domain::{
-        cart::{PriceChangeTranslator, PriceChangedMessage, ProductId}, create_eventstore_and_decider, fake::Price, PricingStream
-    }, subsystems::KafkaMessageHandler
+        PricingStream,
+        cart::{PriceChangeTranslator, PriceChangedMessage, ProductId},
+        create_eventstore_and_decider,
+        fake::Price,
+    },
+    subsystems::KafkaMessageHandler,
 };
-use disintegrate::{query, EventStore};
+use disintegrate::{EventStore, query};
 use fake::Fake;
 use futures::stream::StreamExt;
 use rust_decimal::Decimal;
@@ -12,9 +16,7 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::select;
 use uuid::Uuid;
 
-use crate::test_utils::{
-    assert_until_eq, create_producer, send_external_event, start_test_server,
-};
+use crate::test_utils::{assert_until_eq, create_producer, send_external_event, start_test_server};
 
 /// Find PriceChanged event for a ProductID.
 async fn find_price_changed_event(
@@ -38,7 +40,8 @@ async fn kafka_message_changes_price(
     pool_options: PgPoolOptions,
     connect_options: PgConnectOptions,
 ) {
-    let (server_handle, server_pool, pool, kafka_settings) = start_test_server(pool_options, connect_options).await;
+    let (server_handle, server_pool, pool, kafka_settings) =
+        start_test_server(pool_options, connect_options).await;
 
     let product_id = ProductId::new();
     let product_uuid: Uuid = product_id.into();
@@ -66,20 +69,22 @@ async fn kafka_message_changes_price(
         new_price,
     };
 
-    let (event_store, _decider) = create_eventstore_and_decider(&pool).await.expect("EventStore should be created.");
+    let (event_store, _decider) = create_eventstore_and_decider(&pool)
+        .await
+        .expect("EventStore should be created.");
     select! {
         result = server_handle => {
             println!("Server terminated prematurely with result {result:?}.");
         },
         _ = assert_until_eq(
-            || async { find_price_changed_event(&event_store, &product_id).await }, 
-            Some(expected_event), 
+            || async { find_price_changed_event(&event_store, &product_id).await },
+            Some(expected_event),
             "Waiting for PriceChanged event from Kafka."
         ) => {
             println!("Price Change Event found!");
         }
     };
-  
+
     server_pool.close().await;
     pool.close().await;
 }

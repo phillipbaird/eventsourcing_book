@@ -1,30 +1,34 @@
 use std::{future::Future, time::Duration};
 
-use cart_server::{construct_app_state, infra::{get_config_settings, KafkaSettings}, start_server};
-    
+use cart_server::{
+    construct_app_state,
+    infra::{KafkaSettings, get_config_settings},
+    start_server,
+};
+
 use rdkafka::{
+    ClientConfig,
     producer::{FutureProducer, FutureRecord},
     util::Timeout,
-    ClientConfig,
 };
-use sqlx::{postgres::{PgConnectOptions, PgPoolOptions}, PgPool};
+use sqlx::{
+    PgPool,
+    postgres::{PgConnectOptions, PgPoolOptions},
+};
 use tokio::task::JoinHandle;
 
 /// Asserts that a function returns an expected value or retries until it does.
 /// Retries every 500ms if the values do not match.
 /// Will fail immediately on an error or after 60 retries (30 seconds).
-pub async fn assert_until_eq<F, Fut, T, E>(
-    f: F,
-    expected_value: T,
-    label: &str,
-) where
+pub async fn assert_until_eq<F, Fut, T, E>(f: F, expected_value: T, label: &str)
+where
     F: Fn() -> Fut,
     E: std::fmt::Debug,
     Fut: Future<Output = Result<T, E>>,
     T: PartialEq + std::fmt::Debug,
 {
     let delay_ms = 500;
-    let max_times= 60;
+    let max_times = 60;
     let mut times: usize = 0;
     let mut result: T = f().await.unwrap();
     while times < max_times {
@@ -74,9 +78,20 @@ pub async fn send_external_event<EE>(
         .expect("Expected send to work.");
 }
 
-pub async fn start_test_server(pool_options: PgPoolOptions, connect_options: PgConnectOptions) -> (JoinHandle<Result<(), anyhow::Error>>, PgPool, PgPool, KafkaSettings) {
+pub async fn start_test_server(
+    pool_options: PgPoolOptions,
+    connect_options: PgConnectOptions,
+) -> (
+    JoinHandle<Result<(), anyhow::Error>>,
+    PgPool,
+    PgPool,
+    KafkaSettings,
+) {
     let mut settings = get_config_settings().expect("Could not read application configuration.");
-    settings.database.database_name = connect_options.get_database().expect("Expected database name.").into();
+    settings.database.database_name = connect_options
+        .get_database()
+        .expect("Expected database name.")
+        .into();
     let kafka_settings = settings.kafka.clone();
     let app_state = construct_app_state(settings)
         .await

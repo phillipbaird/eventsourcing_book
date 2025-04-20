@@ -227,7 +227,7 @@ mod tests {
                 price,
                 item_id,
                 product_id,
-                fingerprint: fingerprint.clone()
+                fingerprint: fingerprint.clone(),
             })
             .then([DomainEvent::CartItemAdded {
                 cart_id,

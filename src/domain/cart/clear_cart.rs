@@ -97,7 +97,10 @@ impl StateMutate for ClearCartState {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::{cart::{ItemId, ProductId}, helpers::fake::FingerPrint};
+    use crate::domain::{
+        cart::{ItemId, ProductId},
+        helpers::fake::FingerPrint,
+    };
 
     use super::*;
     use disintegrate::TestHarness;
