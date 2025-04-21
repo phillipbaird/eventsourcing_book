@@ -59,7 +59,7 @@ impl InventoryChangedTranslator {
 impl KafkaMessageHandler for InventoryChangedTranslator {
     type Message = InventoryChangedMessage;
     const GROUP: &str = "cart";
-    const TOPIC: &str = "inventory-changed";
+    const TOPIC: &str = "inventories";
 
     async fn handle_message(&self, _offset: i64, event: Self::Message) {
         match ProductId::try_from(event.product_uuid) {

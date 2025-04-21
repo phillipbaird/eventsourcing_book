@@ -57,8 +57,8 @@ sqlx migrate run --source migrations
 >&2 echo "You can access the database via psql -h localhost -U ${DB_USER} -p ${DB_PORT} -d ${DB_NAME}"
 
 # Create/recreate the Kafka topics.
-docker exec -it cart_kafka /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --delete --if-exists --topic inventory-changed
-docker exec -it cart_kafka /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --topic inventory-changed
+docker exec -it cart_kafka /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --delete --if-exists --topic inventories
+docker exec -it cart_kafka /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --topic inventories
 docker exec -it cart_kafka /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --delete --if-exists --topic price-changes
 docker exec -it cart_kafka /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --topic price-changes
 docker exec -it cart_kafka /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --delete --if-exists --topic published-carts
