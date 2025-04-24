@@ -128,10 +128,10 @@ fn apply_event(
         }
         (Some(read_model), CartStream::CartSubmitted { .. }) => Some(read_model),
         (None, _) => {
-            panic!("The first event for the cart was not CartAdded! This should not happen.")
+            panic!("The first event for the cart was not CartAdded! This should never happen.")
         }
         (Some(_), CartStream::CartCreated { .. }) => {
-            panic!("A secondary event for the cart was CartCreated! This should not happen.")
+            panic!("A secondary event for the cart was CartCreated! This should never happen.")
         }
     }
 }
