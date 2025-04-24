@@ -19,8 +19,14 @@ async fn it_correctly_archives_items_from_carts(
     pool_options: PgPoolOptions,
     connect_options: PgConnectOptions,
 ) {
-    let (server_handle, server_pool, pool, _) =
-        start_test_server(pool_options, connect_options).await;
+    let (server_handle, app_state) =
+        start_test_server(connect_options.clone()).await;
+    
+    // Creating a pool for the test to workaround this issue: https://github.com/launchbadge/sqlx/issues/2567
+    let pool = pool_options
+        .connect_with(connect_options)
+        .await
+        .expect("Expected pool to be created.");
 
     let (_, decider) = create_eventstore_and_decider(&pool)
         .await
@@ -87,6 +93,6 @@ async fn it_correctly_archives_items_from_carts(
         }
     };
 
-    server_pool.close().await;
+    app_state.pool.close().await;
     pool.close().await;
 }

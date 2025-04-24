@@ -22,8 +22,8 @@ async fn kafka_message_changes_inventory(
     pool_options: PgPoolOptions,
     connect_options: PgConnectOptions,
 ) {
-    let (server_handle, server_pool, pool, kafka_settings) =
-        start_test_server(pool_options, connect_options).await;
+    let (server_handle, app_state) =
+        start_test_server(connect_options.clone()).await;
 
     let product_id = ProductId::new();
     let product_uuid: Uuid = product_id.into();
@@ -34,7 +34,7 @@ async fn kafka_message_changes_inventory(
         product_uuid,
         inventory,
     };
-    let producer = create_producer(&kafka_settings);
+    let producer = create_producer(&app_state.settings.kafka);
     send_external_event(
         &producer,
         InventoryChangedTranslator::TOPIC,
@@ -47,6 +47,12 @@ async fn kafka_message_changes_inventory(
         product_id,
         inventory,
     });
+
+    // Creating a pool for the test to workaround this issue: https://github.com/launchbadge/sqlx/issues/2567
+    let pool = pool_options
+        .connect_with(connect_options)
+        .await
+        .expect("Expected pool to be created.");
 
     select! {
         result = server_handle => {
@@ -61,6 +67,6 @@ async fn kafka_message_changes_inventory(
         }
     };
 
-    server_pool.close().await;
+    app_state.pool.close().await;
     pool.close().await;
 }

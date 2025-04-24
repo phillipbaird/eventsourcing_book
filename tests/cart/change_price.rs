@@ -40,8 +40,7 @@ async fn kafka_message_changes_price(
     pool_options: PgPoolOptions,
     connect_options: PgConnectOptions,
 ) {
-    let (server_handle, server_pool, pool, kafka_settings) =
-        start_test_server(pool_options, connect_options).await;
+    let (server_handle, app_state) = start_test_server(connect_options.clone()).await;
 
     let product_id = ProductId::new();
     let product_uuid: Uuid = product_id.into();
@@ -54,7 +53,7 @@ async fn kafka_message_changes_price(
         old_price,
         new_price,
     };
-    let producer = create_producer(&kafka_settings);
+    let producer = create_producer(&app_state.settings.kafka);
     send_external_event(
         &producer,
         PriceChangeTranslator::TOPIC,
@@ -68,6 +67,12 @@ async fn kafka_message_changes_price(
         old_price,
         new_price,
     };
+
+    // Creating a pool for the test to workaround this issue: https://github.com/launchbadge/sqlx/issues/2567
+    let pool = pool_options
+        .connect_with(connect_options)
+        .await
+        .expect("Expected pool to be created.");
 
     let (event_store, _decider) = create_eventstore_and_decider(&pool)
         .await
@@ -85,6 +90,6 @@ async fn kafka_message_changes_price(
         }
     };
 
-    server_pool.close().await;
+    app_state.pool.close().await;
     pool.close().await;
 }
