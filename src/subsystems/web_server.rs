@@ -45,6 +45,10 @@ impl IntoSubsystem<anyhow::Error> for WebServer {
                 get(crate::domain::cart::cart_items_from_db_endpoint),
             )
             .route(
+                "/changeprice/{product_id}",
+                post(crate::domain::cart::change_price_endpoint),
+            )
+            .route(
                 "/clearcart/{cart_id}",
                 post(crate::domain::cart::clear_cart_endpoint),
             )

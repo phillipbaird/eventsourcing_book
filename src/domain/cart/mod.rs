@@ -13,23 +13,25 @@ mod publish_cart;
 mod remove_item;
 mod submit_cart;
 
-pub use add_item::{AddItemCommand, AddItemPayload, add_item_endpoint};
+pub use add_item::{add_item_endpoint, AddItemCommand, AddItemPayload};
 pub use archive_item::archive_product_processor;
-pub use cart_items::{CartItem, CartItemsReadModel, cart_items_endpoint, cart_items_read_model};
+pub use cart_items::{cart_items_endpoint, cart_items_read_model, CartItem, CartItemsReadModel};
 pub use cart_items_from_db::{
-    CartItemsReadModelProjection, cart_items_from_db_endpoint, cart_items_from_db_read_model,
-    cart_items_from_db_read_model_reset,
+    cart_items_from_db_endpoint, cart_items_from_db_read_model,
+    cart_items_from_db_read_model_reset, CartItemsReadModelProjection,
 };
 pub use change_inventory::{
     ChangeInventoryCommand, InventoryChangedMessage, InventoryChangedTranslator,
 };
-pub use change_price::{ChangePriceCommand, PriceChangeTranslator, PriceChangedMessage};
+pub use change_price::{
+    change_price_endpoint, ChangePriceCommand, PriceChangeTranslator, PriceChangedMessage,
+};
 pub use clear_cart::clear_cart_endpoint;
 pub use errors::CartError;
 pub use ids::*;
 pub use publish_cart::{
-    CartSubmittedEventHandler, ExternalPublishCart, OrderedProduct, PublishCartProcessorArgs,
-    publish_cart_processor,
+    publish_cart_processor, CartSubmittedEventHandler, ExternalPublishCart, OrderedProduct,
+    PublishCartProcessorArgs,
 };
-pub use remove_item::{RemoveItemCommand, remove_item_endpoint};
-pub use submit_cart::{SubmitCartCommand, submit_cart_endpoint};
+pub use remove_item::{remove_item_endpoint, RemoveItemCommand};
+pub use submit_cart::{submit_cart_endpoint, SubmitCartCommand};
