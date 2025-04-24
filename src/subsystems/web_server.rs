@@ -12,7 +12,7 @@ use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
-use crate::{AppState, infra::ClientError};
+use crate::{domain::cart::carts_with_products::cart_with_products_endpoint, infra::ClientError, AppState};
 
 pub struct WebServer {
     state: AppState,
@@ -43,6 +43,10 @@ impl IntoSubsystem<anyhow::Error> for WebServer {
             .route(
                 "/{cart_id}/cartitemsfromdb",
                 get(crate::domain::cart::cart_items_from_db_endpoint),
+            )
+            .route(
+                "/cartwithproducts/{product_id}",
+                get(cart_with_products_endpoint),
             )
             .route(
                 "/changeprice/{product_id}",
