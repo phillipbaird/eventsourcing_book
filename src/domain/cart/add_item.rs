@@ -16,7 +16,7 @@ use super::{CartError, CartId, ItemId, ProductId};
 
 //------------------------- Web API ----------------------------
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct AddItemPayload {
     pub cart_id: Uuid,
     pub description: String,

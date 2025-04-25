@@ -14,7 +14,7 @@ use super::{CartError, ProductId};
 
 //------------------------- Web API ----------------------------
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ChangePricePayload {
     pub product_id: Uuid,
     pub new_price: Decimal,

@@ -40,4 +40,5 @@ uuid = { version = "1.11", features = ["v4", "v7", "serde"] }
 
 
 [dev-dependencies]
+httpc-test = "0.1"
 serial_test = "3.2"

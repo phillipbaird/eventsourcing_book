@@ -24,7 +24,8 @@ pub use change_inventory::{
     ChangeInventoryCommand, InventoryChangedMessage, InventoryChangedTranslator,
 };
 pub use change_price::{
-    change_price_endpoint, ChangePriceCommand, PriceChangeTranslator, PriceChangedMessage,
+    change_price_endpoint, ChangePriceCommand, ChangePricePayload, PriceChangeTranslator,
+    PriceChangedMessage,
 };
 pub use clear_cart::clear_cart_endpoint;
 pub use errors::CartError;
