@@ -53,6 +53,10 @@ impl IntoSubsystem<anyhow::Error> for WebServer {
                 post(crate::domain::cart::clear_cart_endpoint),
             )
             .route(
+                "/inventories/{product_id}",
+                get(crate::domain::cart::inventories_endpoint),
+            )
+            .route(
                 "/removeitem/{cart_id}",
                 post(crate::domain::cart::remove_item_endpoint),
             )

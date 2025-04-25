@@ -12,7 +12,7 @@ use crate::{
     domain::cart::{
         CartItemsReadModelProjection, CartSubmittedEventHandler,
         CartsWithProductsReadModelProjection,
-        inventories::InventoriesReadModelProjection,
+        InventoriesReadModelProjection,
     },
 };
 

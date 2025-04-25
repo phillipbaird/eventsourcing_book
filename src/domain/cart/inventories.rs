@@ -1,17 +1,32 @@
 //! Inventories read model.
-
+use anyhow::Context;
 use async_trait::async_trait;
+use axum::{extract::{Path, State}, Json};
 use disintegrate::{EventListener, PersistedEvent, StreamQuery, query};
 use sqlx::PgPool;
 use tracing::error;
+use uuid::Uuid;
 
-use crate::domain::InventoryStream;
+use crate::{domain::InventoryStream, infra::ClientError};
 
 use super::ProductId;
 
+//------------------------- Web API ----------------------------
+
+pub async fn inventories_endpoint(
+    State(pool): State<PgPool>,
+    Path(product_uuid): Path<Uuid>,
+) -> Result<Json<Option<InventoriesReadModel>>, ClientError> {
+    let product_id: ProductId = product_uuid.try_into()?;
+    match find_by_id(&pool, &product_id).await {
+        Ok(read_model) => Ok(Json(read_model)),
+        Err(e) => Err(e.into()),
+    }
+}
+
 //----------------------- Read Model API ------------------------
 
-#[derive(Debug, Clone, PartialEq, serde::Serialize, sqlx::FromRow)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct InventoriesReadModel {
     pub product_id: ProductId,
     pub inventory: i32,
@@ -20,7 +35,7 @@ pub struct InventoriesReadModel {
 pub async fn find_by_id(
     pool: &PgPool,
     product_id: &ProductId,
-) -> Result<Option<InventoriesReadModel>, sqlx::Error> {
+) -> Result<Option<InventoriesReadModel>, anyhow::Error> {
     sqlx::query_as!(
         InventoriesReadModel,
         r#"SELECT product_id as "product_id: _", inventory
@@ -30,11 +45,12 @@ pub async fn find_by_id(
     )
     .fetch_optional(pool)
     .await
+    .with_context(|| format!("Problem in find_by_product_id({product_id})"))
 }
 
 //------------------------- Projection --------------------------
 
-pub struct InventoriesReadModelProjection {
+pub(crate) struct InventoriesReadModelProjection {
     query: StreamQuery<i64, InventoryStream>,
     pool: PgPool,
 }

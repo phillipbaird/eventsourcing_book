@@ -8,7 +8,7 @@ mod change_price;
 mod clear_cart;
 mod errors;
 mod ids;
-pub mod inventories;
+mod inventories;
 mod publish_cart;
 mod remove_item;
 mod submit_cart;
@@ -33,6 +33,8 @@ pub use change_price::{
 pub use clear_cart::clear_cart_endpoint;
 pub use errors::CartError;
 pub use ids::*;
+pub(crate) use inventories::InventoriesReadModelProjection;
+pub use inventories::{inventories_endpoint, InventoriesReadModel};
 pub use publish_cart::{
     publish_cart_processor, CartSubmittedEventHandler, ExternalPublishCart, OrderedProduct,
     PublishCartProcessorArgs,
