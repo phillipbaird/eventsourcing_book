@@ -14,7 +14,7 @@ use super::{CartId, ItemId, ProductId, archive_item::archive_product_processor};
 
 //------------------------- Web API ----------------------------
 
-pub async fn cart_with_products_endpoint(
+pub async fn carts_with_products_endpoint(
     State(pool): State<PgPool>,
     Path(product_uuid): Path<Uuid>,
 ) -> Result<Json<Vec<CartsWithProductsReadModel>>, ClientError> {
@@ -27,7 +27,7 @@ pub async fn cart_with_products_endpoint(
 
 //----------------------- Read Model API ------------------------
 
-#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct CartsWithProductsReadModel {
     pub cart_id: CartId,
     pub item_id: ItemId,
