@@ -56,7 +56,7 @@ pub async fn find_by_product_id(
 //------------------------- Projection --------------------------
 
 #[derive(Clone)]
-pub struct CartsWithProductsReadModelProjection {
+pub(crate) struct CartsWithProductsReadModelProjection {
     pool: PgPool,
     decider: DecisionMaker,
     query: StreamQuery<i64, DomainEvent>,

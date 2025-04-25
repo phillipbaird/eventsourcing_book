@@ -10,7 +10,7 @@ use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
-use crate::{domain::cart::carts_with_products::carts_with_products_endpoint, infra::ClientError, AppState};
+use crate::{domain::cart::carts_with_products_endpoint, infra::ClientError, AppState};
 
 pub struct WebServer {
     state: AppState,

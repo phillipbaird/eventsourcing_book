@@ -11,7 +11,7 @@ use crate::{
     AppState,
     domain::cart::{
         CartItemsReadModelProjection, CartSubmittedEventHandler,
-        carts_with_products::CartsWithProductsReadModelProjection,
+        CartsWithProductsReadModelProjection,
         inventories::InventoriesReadModelProjection,
     },
 };

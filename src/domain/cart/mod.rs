@@ -2,7 +2,7 @@ mod add_item;
 mod archive_item;
 mod cart_items;
 mod cart_items_from_db;
-pub mod carts_with_products;
+mod carts_with_products;
 mod change_inventory;
 mod change_price;
 mod clear_cart;
@@ -20,6 +20,9 @@ pub use cart_items_from_db::{
     cart_items_from_db_endpoint, cart_items_from_db_read_model,
     cart_items_from_db_read_model_reset, CartItemsReadModelProjection,
 };
+pub(crate) use carts_with_products::CartsWithProductsReadModelProjection;
+pub use carts_with_products::{carts_with_products_endpoint, CartsWithProductsReadModel};
+
 pub use change_inventory::{
     ChangeInventoryCommand, InventoryChangedMessage, InventoryChangedTranslator,
 };
