@@ -2,10 +2,10 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use disintegrate_postgres::{PgEventListener, PgEventListenerConfig};
-use futures::FutureExt;
-use tokio::try_join;
+use tokio::select;
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
-use tracing::info;
+use tokio_util::sync::CancellationToken;
+use tracing::{error, info};
 
 use crate::{
     AppState,
@@ -51,14 +51,21 @@ impl IntoSubsystem<anyhow::Error> for EventListeners {
             );
 
         info!("Event Listeners starting.");
-        try_join!(
-            event_listeners
-                .start()
-                .map(|result| result.map_err(anyhow::Error::new)),
-            subsys.on_shutdown_requested().map(Ok::<(), anyhow::Error>)
-        )?;
-
-        info!("Event Listeners shutdown.");
+        let cancellation_token = CancellationToken::new();
+        let cancellation_token_clone = cancellation_token.clone();
+        let shutdown_handle = async move {
+            cancellation_token_clone.cancelled().await;
+        };
+        select!( 
+            result = event_listeners.start_with_shutdown(shutdown_handle) => {
+                error!("Event listeners completed with {result:?}");
+            }
+            // .map(|result| result.map_err(anyhow::Error::new))
+            _ = subsys.on_shutdown_requested() => {
+                cancellation_token.cancel();
+                info!("Event Listeners shutdown.");
+            }
+        );
         Ok(())
     }
 }
