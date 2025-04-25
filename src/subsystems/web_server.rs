@@ -1,5 +1,3 @@
-use std::net::SocketAddr;
-
 use async_trait::async_trait;
 use axum::{
     Json,
@@ -12,7 +10,7 @@ use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
-use crate::{domain::cart::carts_with_products::cart_with_products_endpoint, infra::ClientError, AppState};
+use crate::{domain::cart::carts_with_products::carts_with_products_endpoint, infra::ClientError, AppState};
 
 pub struct WebServer {
     state: AppState,
@@ -28,8 +26,6 @@ impl WebServer {
 impl IntoSubsystem<anyhow::Error> for WebServer {
     async fn run(self, subsys: SubsystemHandle) -> Result<(), anyhow::Error> {
         let address = self.state.settings.application.address();
-        let socket_addr: SocketAddr = address.parse()
-            .inspect_err(|e| error!("Could not parse server address {address}.\nCheck application host and port in configuration settings.\nFailed with {e}"))?;
 
         let router = axum::Router::new()
             .route(
@@ -45,8 +41,8 @@ impl IntoSubsystem<anyhow::Error> for WebServer {
                 get(crate::domain::cart::cart_items_from_db_endpoint),
             )
             .route(
-                "/cartwithproducts/{product_id}",
-                get(cart_with_products_endpoint),
+                "/cartswithproducts/{product_id}",
+                get(carts_with_products_endpoint),
             )
             .route(
                 "/changeprice/{product_id}",
@@ -68,13 +64,13 @@ impl IntoSubsystem<anyhow::Error> for WebServer {
             .layer(TraceLayer::new_for_http())
             .with_state(self.state);
 
-        let listener = tokio::net::TcpListener::bind(socket_addr)
+        let listener = tokio::net::TcpListener::bind(address.clone())
             .await
             .inspect_err(|e| {
-                error!("Could not bind socket address {socket_addr}. Failed with {e}")
+                error!("Could not bind socket address {address}. Failed with {e}")
             })?;
 
-        info!("Web server starting on http://{socket_addr}");
+        info!("Web server starting on http://{address}");
         select!(
             result = axum::serve(listener, router.into_make_service()).into_future().map(|result| result.map_err(anyhow::Error::new)) => {
                 error!("Web server completed with {result:?}");
