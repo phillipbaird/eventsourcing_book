@@ -1,9 +1,7 @@
 use std::{future::Future, time::Duration};
 
 use cart_server::{
-    construct_app_state,
-    infra::{get_config_settings, KafkaSettings},
-    start_server, AppState,
+    build_subsystems, construct_app_state, infra::{get_config_settings, KafkaSettings, Settings}, test_server
 };
 
 use rdkafka::{
@@ -12,7 +10,7 @@ use rdkafka::{
     util::Timeout,
 };
 use sqlx::postgres::PgConnectOptions;
-use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 
 /// Asserts that a function returns an expected value or retries until it does.
 /// Retries every 500ms if the values do not match.
@@ -27,7 +25,7 @@ where
     let delay_ms = 500;
     let max_times = 60;
     let mut times: usize = 0;
-    let mut result: T = f().await.unwrap();
+    let mut result: T = f().await.inspect(|e| println!("{e:?}")).unwrap();
     while times < max_times {
         times += 1;
         if result == expected_value {
@@ -35,7 +33,7 @@ where
         } else {
             tokio::time::sleep(Duration::from_millis(delay_ms)).await;
             println!("Retry #{times} {label}");
-            result = f().await.unwrap();
+            result = f().await.inspect(|e| println!("{e:?}")).unwrap();
         }
     }
     assert_eq!(result, expected_value);
@@ -78,18 +76,21 @@ pub async fn send_external_event<EE>(
 pub async fn start_test_server(
     connect_options: PgConnectOptions,
 ) -> (
-    JoinHandle<Result<(), anyhow::Error>>,
-    AppState,
+    CancellationToken,
+    Settings,
 ) {
     let mut settings = get_config_settings().expect("Could not read application configuration.");
     settings.database.database_name = connect_options
         .get_database()
         .expect("Expected database name.")
         .into();
-    let app_state = construct_app_state(settings)
+    let app_state = construct_app_state(settings.clone())
         .await
         .expect("Expected AppState to be created.");
-    let server_handle = tokio::task::spawn(start_server(app_state.clone()));
+    let pool = app_state.pool.clone();
+    let subsystems = build_subsystems(app_state);
+    let shutdown_token = subsystems._get_shutdown_token().clone();
+    tokio::task::spawn(test_server(subsystems, pool));
 
-    (server_handle, app_state)
+    (shutdown_token, settings)
 }

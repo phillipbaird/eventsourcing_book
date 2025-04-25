@@ -6,11 +6,11 @@ use std::time::Duration;
 
 use anyhow::Context;
 use axum::extract::FromRef;
-use domain::{DecisionMaker, EventStore, create_eventstore_and_decider};
+use domain::{create_eventstore_and_decider, DecisionMaker, EventStore};
 use infra::{DatabaseSettings, Settings};
-use sqlx::{PgPool, postgres::PgPoolOptions};
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use subsystems::{
-    EventListeners, KafkaListeners, WebServer, WorkQueueSubsystem, work_queue::WorkQueue,
+    work_queue::WorkQueue, EventListeners, KafkaListeners, WebServer, WorkQueueSubsystem,
 };
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemBuilder, Toplevel};
 use tracing_appender::non_blocking::WorkerGuard;
@@ -24,7 +24,7 @@ pub struct AppState {
     pub work_queue: WorkQueue,
 }
 
-pub async fn start_server(state: AppState) -> anyhow::Result<()> {
+pub fn build_subsystems(state: AppState) -> Toplevel {
     let event_listeners = EventListeners::new(state.clone());
     let kafka_listeners = KafkaListeners::new(state.clone());
     let work_queue_subsystem = WorkQueueSubsystem::new(state.clone());
@@ -49,10 +49,23 @@ pub async fn start_server(state: AppState) -> anyhow::Result<()> {
             webserver.into_subsystem(),
         ));
     })
-    .catch_signals()
-    .handle_shutdown_requests(Duration::from_millis(2000))
-    .await
-    .map_err(Into::into)
+}
+
+pub async fn test_server(toplevel: Toplevel, pool: PgPool) -> anyhow::Result<()> {
+    let result = toplevel
+        .handle_shutdown_requests(Duration::from_millis(2000))
+        .await
+        .map_err(Into::into);
+    pool.close().await;
+    result
+}
+
+pub async fn start_server(state: AppState) -> anyhow::Result<()> {
+    build_subsystems(state)
+        .catch_signals()
+        .handle_shutdown_requests(Duration::from_millis(2000))
+        .await
+        .map_err(Into::into)
 }
 
 pub fn configure_tracing(settings: &Settings) -> WorkerGuard {

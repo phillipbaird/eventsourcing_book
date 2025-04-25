@@ -1,17 +1,28 @@
 use cart_server::{
     domain::cart::{
-        InventoryChangedMessage, InventoryChangedTranslator, ProductId,
-        inventories::{InventoriesReadModel, find_by_id},
+        InventoriesReadModel, InventoryChangedMessage, InventoryChangedTranslator, ProductId
     },
     subsystems::KafkaMessageHandler,
 };
 use fake::Fake;
+use httpc_test::Client;
 use serial_test::serial;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::select;
 use uuid::Uuid;
 
 use crate::test_utils::{assert_until_eq, create_producer, send_external_event, start_test_server};
+
+async fn get_inventories(
+    client: &Client,
+    product_uuid: &Uuid,
+) -> httpc_test::Result<Option<InventoriesReadModel>> {
+    let res = client
+        .do_get(&format!("/inventories/{product_uuid}"))
+        .await
+        .unwrap();
+    res.json_body_as::<Option<InventoriesReadModel>>()
+}
+
 
 /// This integration test sends an event to the inventory-changed kafka topic.
 /// It then receives the message back and responds by processing ChangeInventoryCommand.
@@ -19,10 +30,10 @@ use crate::test_utils::{assert_until_eq, create_producer, send_external_event, s
 #[sqlx::test]
 #[serial]
 async fn kafka_message_changes_inventory(
-    pool_options: PgPoolOptions,
+    _: PgPoolOptions,
     connect_options: PgConnectOptions,
 ) {
-    let (server_handle, app_state) =
+    let (shutdown_token, settings) =
         start_test_server(connect_options.clone()).await;
 
     let product_id = ProductId::new();
@@ -34,7 +45,7 @@ async fn kafka_message_changes_inventory(
         product_uuid,
         inventory,
     };
-    let producer = create_producer(&app_state.settings.kafka);
+    let producer = create_producer(&settings.kafka);
     send_external_event(
         &producer,
         InventoryChangedTranslator::TOPIC,
@@ -48,25 +59,15 @@ async fn kafka_message_changes_inventory(
         inventory,
     });
 
-    // Creating a pool for the test to workaround this issue: https://github.com/launchbadge/sqlx/issues/2567
-    let pool = pool_options
-        .connect_with(connect_options)
-        .await
-        .expect("Expected pool to be created.");
+    let url = format!("http://{}", settings.application.address());
+    let client = httpc_test::new_client(url).expect("Expected client to be created.");
 
-    select! {
-        result = server_handle => {
-            println!("Server terminated prematurely with result {result:?}.");
-        }
-        _ = assert_until_eq(
-                || async { find_by_id(&pool, &product_id).await },
-                expected_inventory,
-                "Waiting for inventory to be updated."
-        ) => {
-            println!("Found the inventory had changed.");
-        }
-    };
+    assert_until_eq(
+        || async { get_inventories(&client, &product_uuid).await },
+        expected_inventory,
+        "Waiting for inventory to be updated."
+    ).await;
+    println!("Found the inventory had changed.");
 
-    app_state.pool.close().await;
-    pool.close().await;
+    shutdown_token.cancel();
 }

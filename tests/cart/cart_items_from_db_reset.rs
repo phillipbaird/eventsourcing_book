@@ -1,14 +1,31 @@
-use cart_server::domain::{
-    cart::{
-        AddItemCommand, CartId, cart_items_from_db_read_model, cart_items_from_db_read_model_reset,
-    },
-    create_eventstore_and_decider,
+use axum::http::StatusCode;
+use cart_server::domain::cart::{
+    cart_items_from_db_read_model, cart_items_from_db_read_model_reset, AddItemPayload, CartId,
+    CartItemsReadModel,
 };
 use fake::{Fake, Faker};
+use httpc_test::Client;
 use serial_test::serial;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use uuid::Uuid;
 
 use crate::test_utils::{assert_until_eq, start_test_server};
+
+async fn get_cart_items(
+    client: &Client,
+    cart_uuid: &Uuid,
+) -> httpc_test::Result<Option<CartItemsReadModel>> {
+    let res = client
+        .do_get(&format!("/{cart_uuid}/cartitemsfromdb"))
+        .await
+        .unwrap();
+    if res.status() == StatusCode::OK {
+        res.json_body_as::<CartItemsReadModel>().map(Some)
+    }
+    else {
+        Ok(None)
+    }
+}
 
 #[sqlx::test]
 #[serial]
@@ -16,34 +33,29 @@ async fn it_resets_cart_items_read_model(
     pool_options: PgPoolOptions,
     connect_options: PgConnectOptions,
 ) {
-    let (server_handle, app_state) =
-        start_test_server(connect_options.clone()).await;
+    let (shutdown_token, settings) = start_test_server(connect_options.clone()).await;
 
-    // Creating a pool for the test to workaround this issue: https://github.com/launchbadge/sqlx/issues/2567
-    let pool = pool_options
-        .connect_with(connect_options.clone())
-        .await
-        .expect("Expected pool to be created.");
-
-    let (_, decider) = create_eventstore_and_decider(&pool)
-        .await
-        .expect("Decider should be created.");
+    let url = format!("http://{}", settings.application.address());
+    let client = httpc_test::new_client(url.clone()).expect("Expected client to be created.");
 
     let cart_id = CartId::new();
+    let cart_uuid = cart_id.into();
 
-    let add_item_cmd = AddItemCommand {
-        cart_id,
+    let payload = AddItemPayload {
+        cart_id: cart_uuid,
         ..Faker.fake()
     };
-    decider
-        .make(add_item_cmd)
+    let json_payload = serde_json::to_value(&payload).expect("Expected payload to serialise.");
+    let res = client
+        .do_post(&format!("/additem/{cart_id}"), json_payload)
         .await
-        .expect("Command should be successful.");
+        .expect("AddItem command should be successful.");
+    assert_eq!(res.status(), StatusCode::OK);
 
     // Wait until a read model is returned.
     assert_until_eq(
         || async {
-            cart_items_from_db_read_model(&pool, &cart_id)
+            get_cart_items(&client, &cart_uuid)
                 .await
                 .map(|maybe| maybe.is_some())
         },
@@ -53,8 +65,13 @@ async fn it_resets_cart_items_read_model(
     .await;
 
     // Shutdown the server.
-    server_handle.abort();
-    app_state.pool.close().await;
+    shutdown_token.cancel();
+
+    // Creating a pool for the test to workaround this issue: https://github.com/launchbadge/sqlx/issues/2567
+    let pool = pool_options
+        .connect_with(connect_options.clone())
+        .await
+        .expect("Expected pool to be created.");
 
     // Reset the read model.
     cart_items_from_db_read_model_reset(&pool)
@@ -62,6 +79,8 @@ async fn it_resets_cart_items_read_model(
         .expect("Read model should reset.");
 
     // Confirm there is no read model for cart.
+    // We cannot check this via the web api because restarting the server will rebuild the read
+    // model.
     let result = cart_items_from_db_read_model(&pool, &cart_id)
         .await
         .expect("Result should be ok.");
@@ -69,13 +88,13 @@ async fn it_resets_cart_items_read_model(
     pool.close().await;
 
     // Restart the server.
-    let (server_handle, app_state) =
-        start_test_server(connect_options).await;
+    let (shutdown_token, _) = start_test_server(connect_options).await;
 
     // Confirm read model rebuilt.
+    let client = httpc_test::new_client(url).expect("Expected client to be created.");
     assert_until_eq(
         || async {
-            cart_items_from_db_read_model(&pool, &cart_id)
+            get_cart_items(&client, &cart_uuid)
                 .await
                 .map(|maybe| maybe.is_some())
         },
@@ -84,7 +103,6 @@ async fn it_resets_cart_items_read_model(
     )
     .await;
 
-    server_handle.abort();
-    app_state.pool.close().await;
-    pool.close().await;
+    // Shutdown the server.
+    shutdown_token.cancel();
 }

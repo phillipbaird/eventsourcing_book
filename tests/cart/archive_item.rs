@@ -1,7 +1,7 @@
 use axum::http::StatusCode;
 use cart_server::domain::{
     cart::{
-        carts_with_products::CartsWithProductsReadModel, AddItemPayload, CartId,
+        CartsWithProductsReadModel, AddItemPayload, CartId,
         ChangePricePayload, ProductId,
     },
     fake::Price,
@@ -10,7 +10,6 @@ use fake::{Fake, Faker};
 use httpc_test::Client;
 use serial_test::serial;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::select;
 use uuid::Uuid;
 
 use crate::test_utils::{assert_until_eq, start_test_server};
@@ -33,9 +32,9 @@ async fn it_correctly_archives_items_from_carts(
     _pool_options: PgPoolOptions,
     connect_options: PgConnectOptions,
 ) {
-    let (server_handle, app_state) = start_test_server(connect_options.clone()).await;
+    let (shutdown_token, settings) = start_test_server(connect_options.clone()).await;
 
-    let url = format!("http://{}", app_state.settings.application.address());
+    let url = format!("http://{}", settings.application.address());
     let client = httpc_test::new_client(url).expect("Expected client to be created.");
 
     let product_id: Uuid = ProductId::new().into();
@@ -87,18 +86,12 @@ async fn it_correctly_archives_items_from_carts(
     assert_eq!(res.status(), StatusCode::OK);
 
     // There should be zero carts containing the product once the PriceChanged event has been processed.
-    select! {
-        result = server_handle => {
-            println!("Server terminated prematurely with result {result:?}.");
-        }
-        _ = assert_until_eq(
-            || async { carts_with_products_len(&client, &product_id).await },
-            0,
-            "Waiting for Carts with Product to equal 0"
-        ) => {
-            println!("Product has been archived.");
-        }
-    };
+    assert_until_eq(
+        || async { carts_with_products_len(&client, &product_id).await },
+        0,
+        "Waiting for Carts with Product to equal 0"
+    ).await;
+    println!("Product has been archived.");
 
-    app_state.pool.close().await;
+    shutdown_token.cancel();
 }

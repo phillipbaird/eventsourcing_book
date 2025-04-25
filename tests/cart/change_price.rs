@@ -13,7 +13,6 @@ use futures::stream::StreamExt;
 use rust_decimal::Decimal;
 use serial_test::serial;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-use tokio::select;
 use uuid::Uuid;
 
 use crate::test_utils::{assert_until_eq, create_producer, send_external_event, start_test_server};
@@ -40,7 +39,7 @@ async fn kafka_message_changes_price(
     pool_options: PgPoolOptions,
     connect_options: PgConnectOptions,
 ) {
-    let (server_handle, app_state) = start_test_server(connect_options.clone()).await;
+    let (shutdown_token, settings) = start_test_server(connect_options.clone()).await;
 
     let product_id = ProductId::new();
     let product_uuid: Uuid = product_id.into();
@@ -53,7 +52,7 @@ async fn kafka_message_changes_price(
         old_price,
         new_price,
     };
-    let producer = create_producer(&app_state.settings.kafka);
+    let producer = create_producer(&settings.kafka);
     send_external_event(
         &producer,
         PriceChangeTranslator::TOPIC,
@@ -77,19 +76,13 @@ async fn kafka_message_changes_price(
     let (event_store, _decider) = create_eventstore_and_decider(&pool)
         .await
         .expect("EventStore should be created.");
-    select! {
-        result = server_handle => {
-            println!("Server terminated prematurely with result {result:?}.");
-        },
-        _ = assert_until_eq(
-            || async { find_price_changed_event(&event_store, &product_id).await },
-            Some(expected_event),
-            "Waiting for PriceChanged event from Kafka."
-        ) => {
-            println!("Price Change Event found!");
-        }
-    };
 
-    app_state.pool.close().await;
-    pool.close().await;
+    assert_until_eq(
+        || async { find_price_changed_event(&event_store, &product_id).await },
+        Some(expected_event),
+        "Waiting for PriceChanged event from Kafka."
+    ).await;
+    println!("Price Change Event found!");
+
+    shutdown_token.cancel();
 }
