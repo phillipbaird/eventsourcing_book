@@ -1,7 +1,10 @@
 //! Inventories read model.
 use anyhow::Context;
 use async_trait::async_trait;
-use axum::{extract::{Path, State}, Json};
+use axum::{
+    Json,
+    extract::{Path, State},
+};
 use disintegrate::{EventListener, PersistedEvent, StreamQuery, query};
 use sqlx::PgPool;
 use tracing::error;

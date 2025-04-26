@@ -23,9 +23,11 @@ impl Decision for ArchiveItemCommand {
         ArchiveItemState {
             cart_id: self.cart_id,
             item_id: self.item_id,
+            price_changed_event_id: self.price_changed_event_id,
             cart_exists: false,
             item_exists: false,
             submitted: false,
+            price_change_already_processed: false,
         }
     }
 
@@ -34,7 +36,7 @@ impl Decision for ArchiveItemCommand {
             return Err(CartError::CartCannotBeAltered);
         }
 
-        if state.cart_exists && state.item_exists {
+        if state.cart_exists && state.item_exists && !state.price_change_already_processed {
             Ok(vec![DomainEvent::ItemArchivedEvent {
                 cart_id: self.cart_id,
                 item_id: self.item_id,
@@ -54,9 +56,11 @@ pub struct ArchiveItemState {
     #[id]
     cart_id: CartId,
     item_id: ItemId,
+    price_changed_event_id: i64,
     cart_exists: bool,
     item_exists: bool,
     submitted: bool,
+    price_change_already_processed: bool,
 }
 
 impl StateMutate for ArchiveItemState {
@@ -78,9 +82,16 @@ impl StateMutate for ArchiveItemState {
             CartStream::CartCleared { .. } => {
                 self.item_exists = false;
             }
-            CartStream::ItemArchivedEvent { item_id, .. } => {
+            CartStream::ItemArchivedEvent {
+                item_id,
+                price_changed_event_id,
+                ..
+            } => {
                 if item_id == self.item_id {
                     self.item_exists = false;
+                };
+                if price_changed_event_id == self.price_changed_event_id {
+                    self.price_change_already_processed = true;
                 }
             }
             CartStream::CartSubmitted { .. } => {

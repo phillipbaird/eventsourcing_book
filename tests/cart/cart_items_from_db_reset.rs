@@ -1,7 +1,7 @@
 use axum::http::StatusCode;
 use cart_server::domain::cart::{
-    cart_items_from_db_read_model, cart_items_from_db_read_model_reset, AddItemPayload, CartId,
-    CartItemsReadModel,
+    AddItemPayload, CartId, CartItemsReadModel, cart_items_from_db_read_model,
+    cart_items_from_db_read_model_reset,
 };
 use fake::{Fake, Faker};
 use httpc_test::Client;
@@ -21,8 +21,7 @@ async fn get_cart_items(
         .unwrap();
     if res.status() == StatusCode::OK {
         res.json_body_as::<CartItemsReadModel>().map(Some)
-    }
-    else {
+    } else {
         Ok(None)
     }
 }

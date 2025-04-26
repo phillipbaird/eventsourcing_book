@@ -1,13 +1,18 @@
 use anyhow::Context;
 use async_trait::async_trait;
-use axum::{extract::{Path, State}, Json};
+use axum::{
+    Json,
+    extract::{Path, State},
+};
 use disintegrate::Decision;
 use rust_decimal::Decimal;
 use tracing::error;
 use uuid::Uuid;
 
 use crate::{
-    domain::{helpers::Stateless, DecisionMaker, DomainEvent}, infra::ClientError, subsystems::KafkaMessageHandler
+    domain::{DecisionMaker, DomainEvent, helpers::Stateless},
+    infra::ClientError,
+    subsystems::KafkaMessageHandler,
 };
 
 use super::{CartError, ProductId};
@@ -42,7 +47,6 @@ pub async fn change_price_endpoint(
         .context("No event returned for AddItemCommand!")?;
 
     Ok(Json((product_id, last_event_id)))
-   
 }
 
 //------------------------- Command ----------------------------
@@ -114,13 +118,13 @@ impl KafkaMessageHandler for PriceChangeTranslator {
     const GROUP: &str = "cart";
     const TOPIC: &str = "price-changes";
 
-    async fn handle_message(&self, _offset: i64, event: Self::Message) {
-        match ProductId::try_from(event.product_uuid) {
+    async fn handle_message(&self, _offset: i64, message: Self::Message) {
+        match ProductId::try_from(message.product_uuid) {
             Ok(product_id) => {
                 let decision = ChangePriceCommand {
                     product_id,
-                    old_price: event.old_price,
-                    new_price: event.new_price,
+                    old_price: message.old_price,
+                    new_price: message.new_price,
                 };
                 if let Err(error) = self.decider.make(decision).await {
                     error!("PriceChangeTranslator: ChangePriceCommand failed with {error}");

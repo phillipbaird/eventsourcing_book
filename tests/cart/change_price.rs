@@ -80,8 +80,9 @@ async fn kafka_message_changes_price(
     assert_until_eq(
         || async { find_price_changed_event(&event_store, &product_id).await },
         Some(expected_event),
-        "Waiting for PriceChanged event from Kafka."
-    ).await;
+        "Waiting for PriceChanged event from Kafka.",
+    )
+    .await;
     println!("Price Change Event found!");
 
     shutdown_token.cancel();

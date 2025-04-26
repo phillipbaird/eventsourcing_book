@@ -1,7 +1,9 @@
 use std::{future::Future, time::Duration};
 
 use cart_server::{
-    build_subsystems, construct_app_state, infra::{get_config_settings, KafkaSettings, Settings}, test_server
+    build_subsystems, construct_app_state,
+    infra::{KafkaSettings, Settings, get_config_settings},
+    test_server,
 };
 
 use rdkafka::{
@@ -73,12 +75,7 @@ pub async fn send_external_event<EE>(
         .expect("Expected send to work.");
 }
 
-pub async fn start_test_server(
-    connect_options: PgConnectOptions,
-) -> (
-    CancellationToken,
-    Settings,
-) {
+pub async fn start_test_server(connect_options: PgConnectOptions) -> (CancellationToken, Settings) {
     let mut settings = get_config_settings().expect("Could not read application configuration.");
     settings.database.database_name = connect_options
         .get_database()

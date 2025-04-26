@@ -6,11 +6,11 @@ use std::time::Duration;
 
 use anyhow::Context;
 use axum::extract::FromRef;
-use domain::{create_eventstore_and_decider, DecisionMaker, EventStore};
+use domain::{DecisionMaker, EventStore, create_eventstore_and_decider};
 use infra::{DatabaseSettings, Settings};
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{PgPool, postgres::PgPoolOptions};
 use subsystems::{
-    work_queue::WorkQueue, EventListeners, KafkaListeners, WebServer, WorkQueueSubsystem,
+    EventListeners, KafkaListeners, WebServer, WorkQueueSubsystem, work_queue::WorkQueue,
 };
 use tokio_graceful_shutdown::{IntoSubsystem, SubsystemBuilder, Toplevel};
 use tracing_appender::non_blocking::WorkerGuard;

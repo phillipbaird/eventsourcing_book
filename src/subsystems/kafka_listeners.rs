@@ -29,7 +29,7 @@ pub trait KafkaMessageHandler {
     const GROUP: &str;
     /// The handle_message implementations are responsible for all error handling.
     /// Whether that is simply logging the issue or sending the message to a deadletter queue.
-    async fn handle_message(&self, offset: i64, event: Self::Message);
+    async fn handle_message(&self, offset: i64, message: Self::Message);
 }
 
 //--------------------- All Kafka Listeners ----------------------

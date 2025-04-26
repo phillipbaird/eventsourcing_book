@@ -1,6 +1,6 @@
 use cart_server::{
     domain::cart::{
-        InventoriesReadModel, InventoryChangedMessage, InventoryChangedTranslator, ProductId
+        InventoriesReadModel, InventoryChangedMessage, InventoryChangedTranslator, ProductId,
     },
     subsystems::KafkaMessageHandler,
 };
@@ -23,18 +23,13 @@ async fn get_inventories(
     res.json_body_as::<Option<InventoriesReadModel>>()
 }
 
-
 /// This integration test sends an event to the inventory-changed kafka topic.
 /// It then receives the message back and responds by processing ChangeInventoryCommand.
 /// The command produces an internal InventoryChaged. The event is then used to update a read model.
 #[sqlx::test]
 #[serial]
-async fn kafka_message_changes_inventory(
-    _: PgPoolOptions,
-    connect_options: PgConnectOptions,
-) {
-    let (shutdown_token, settings) =
-        start_test_server(connect_options.clone()).await;
+async fn kafka_message_changes_inventory(_: PgPoolOptions, connect_options: PgConnectOptions) {
+    let (shutdown_token, settings) = start_test_server(connect_options.clone()).await;
 
     let product_id = ProductId::new();
     let product_uuid: Uuid = product_id.into();
@@ -65,8 +60,9 @@ async fn kafka_message_changes_inventory(
     assert_until_eq(
         || async { get_inventories(&client, &product_uuid).await },
         expected_inventory,
-        "Waiting for inventory to be updated."
-    ).await;
+        "Waiting for inventory to be updated.",
+    )
+    .await;
     println!("Found the inventory had changed.");
 
     shutdown_token.cancel();

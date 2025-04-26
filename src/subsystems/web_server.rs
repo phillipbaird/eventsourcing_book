@@ -10,7 +10,7 @@ use tokio_graceful_shutdown::{IntoSubsystem, SubsystemHandle};
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
-use crate::{domain::cart::carts_with_products_endpoint, infra::ClientError, AppState};
+use crate::{AppState, domain::cart::carts_with_products_endpoint, infra::ClientError};
 
 pub struct WebServer {
     state: AppState,
@@ -70,9 +70,7 @@ impl IntoSubsystem<anyhow::Error> for WebServer {
 
         let listener = tokio::net::TcpListener::bind(address.clone())
             .await
-            .inspect_err(|e| {
-                error!("Could not bind socket address {address}. Failed with {e}")
-            })?;
+            .inspect_err(|e| error!("Could not bind socket address {address}. Failed with {e}"))?;
 
         info!("Web server starting on http://{address}");
         select!(

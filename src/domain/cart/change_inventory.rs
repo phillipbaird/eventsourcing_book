@@ -10,6 +10,47 @@ use crate::{
 
 use super::{CartError, ProductId};
 
+//--------------------------- Processor -----------------------------
+
+#[derive(Clone)]
+pub struct InventoryChangedTranslator {
+    decider: DecisionMaker,
+}
+
+impl InventoryChangedTranslator {
+    pub fn new(decider: DecisionMaker) -> Self {
+        Self { decider }
+    }
+}
+
+#[async_trait]
+impl KafkaMessageHandler for InventoryChangedTranslator {
+    type Message = InventoryChangedMessage;
+    const GROUP: &str = "cart";
+    const TOPIC: &str = "inventories";
+
+    async fn handle_message(&self, _offset: i64, message: Self::Message) {
+        match ProductId::try_from(message.product_uuid) {
+            Ok(product_id) => {
+                let decision = ChangeInventoryCommand {
+                    product_id,
+                    inventory: message.inventory,
+                };
+                if let Err(error) = self.decider.make(decision).await {
+                    error!(
+                        "InventoryChangedTranslator: ChangeInventoryCommand failed with {error}"
+                    );
+                }
+            }
+            Err(error) => {
+                error!(
+                    "InventoryChangedTranslator: Failed to extract ProductId from message due to {error}"
+                );
+            }
+        }
+    }
+}
+
 // --------------------------- Command ----------------------------
 
 #[derive(Debug, Clone)]
@@ -40,47 +81,6 @@ impl Decision for ChangeInventoryCommand {
 pub struct InventoryChangedMessage {
     pub product_uuid: Uuid,
     pub inventory: i32,
-}
-
-//--------------------------- Processor -----------------------------
-
-#[derive(Clone)]
-pub struct InventoryChangedTranslator {
-    decider: DecisionMaker,
-}
-
-impl InventoryChangedTranslator {
-    pub fn new(decider: DecisionMaker) -> Self {
-        Self { decider }
-    }
-}
-
-#[async_trait]
-impl KafkaMessageHandler for InventoryChangedTranslator {
-    type Message = InventoryChangedMessage;
-    const GROUP: &str = "cart";
-    const TOPIC: &str = "inventories";
-
-    async fn handle_message(&self, _offset: i64, event: Self::Message) {
-        match ProductId::try_from(event.product_uuid) {
-            Ok(product_id) => {
-                let decision = ChangeInventoryCommand {
-                    product_id,
-                    inventory: event.inventory,
-                };
-                if let Err(error) = self.decider.make(decision).await {
-                    error!(
-                        "InventoryChangedTranslator: ChangeInventoryCommand failed with {error}"
-                    );
-                }
-            }
-            Err(error) => {
-                error!(
-                    "InventoryChangedTranslator: Failed to extract ProductId from message due to {error}"
-                );
-            }
-        }
-    }
 }
 
 //-------------------------- Tests -------------------------------

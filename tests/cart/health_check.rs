@@ -14,10 +14,12 @@ async fn the_webserver_responds_to_a_simple_get_request(
 
     let url = format!("http://{}", settings.application.address());
     let client = httpc_test::new_client(url).expect("Expected client to be created.");
-    let res = client.do_get("/healthcheck").await.expect("Health check should succeed.");
-    
+    let res = client
+        .do_get("/healthcheck")
+        .await
+        .expect("Health check should succeed.");
+
     shutdown_token.cancel();
 
     assert_eq!(res.status(), StatusCode::OK);
-
 }

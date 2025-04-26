@@ -2,13 +2,19 @@
 
 use anyhow::Context;
 use async_trait::async_trait;
-use axum::{extract::{Path, State}, Json};
+use axum::{
+    Json,
+    extract::{Path, State},
+};
 use disintegrate::{EventListener, PersistedEvent, StreamQuery, query};
 use sqlx::PgPool;
 use tracing::error;
 use uuid::Uuid;
 
-use crate::{domain::{CartStream, DecisionMaker, DomainEvent, PricingStream}, infra::ClientError};
+use crate::{
+    domain::{CartStream, DecisionMaker, DomainEvent, PricingStream},
+    infra::ClientError,
+};
 
 use super::{CartId, ItemId, ProductId, archive_item::archive_product_processor};
 

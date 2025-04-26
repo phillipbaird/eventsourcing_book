@@ -1,9 +1,6 @@
 use axum::http::StatusCode;
 use cart_server::domain::{
-    cart::{
-        CartsWithProductsReadModel, AddItemPayload, CartId,
-        ChangePricePayload, ProductId,
-    },
+    cart::{AddItemPayload, CartId, CartsWithProductsReadModel, ChangePricePayload, ProductId},
     fake::Price,
 };
 use fake::{Fake, Faker};
@@ -89,8 +86,9 @@ async fn it_correctly_archives_items_from_carts(
     assert_until_eq(
         || async { carts_with_products_len(&client, &product_id).await },
         0,
-        "Waiting for Carts with Product to equal 0"
-    ).await;
+        "Waiting for Carts with Product to equal 0",
+    )
+    .await;
     println!("Product has been archived.");
 
     shutdown_token.cancel();

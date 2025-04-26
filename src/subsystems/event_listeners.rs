@@ -11,8 +11,7 @@ use crate::{
     AppState,
     domain::cart::{
         CartItemsReadModelProjection, CartSubmittedEventHandler,
-        CartsWithProductsReadModelProjection,
-        InventoriesReadModelProjection,
+        CartsWithProductsReadModelProjection, InventoriesReadModelProjection,
     },
 };
 
@@ -56,7 +55,7 @@ impl IntoSubsystem<anyhow::Error> for EventListeners {
         let shutdown_handle = async move {
             cancellation_token_clone.cancelled().await;
         };
-        select!( 
+        select!(
             result = event_listeners.start_with_shutdown(shutdown_handle) => {
                 error!("Event listeners completed with {result:?}");
             }
